@@ -667,37 +667,43 @@ std::cout<<ans<<'\n';
 约定：除了树状数组，都以0作为起始下标
 \subsection{ST表}
 \begin{lstlisting}
-    template <typename T>
+template <typename T>
 inline T ceilLog2(T x){
-    auto bw= sizeof(T)*8;
-    return bw-1-__builtin_clz(x-1);
+    u64 tx=x;
+    if (x==1){
+        return 0;
+    }
+    auto bw= sizeof(tx)*8;
+    return bw-__builtin_clzll(tx-1);
 }
 template <typename T>
 inline T floorLog2(T x){
-    auto bw= sizeof(T)*8;
-    return bw-1-__builtin_clz(x);
+    u64 tx=x;
+    auto bw= sizeof(tx)*8;
+    return bw-1-__builtin_clzll(tx);
 }
-template <typename T,typename opT>
+template<typename T,typename OPT>
 struct SparseTable{
+    using sz=size_t;
     std::vector<std::vector<T>> st;
-    opT op;
-    SparseTable(const std::vector<T>&_v,opT _op):op(std::move(_op)),st(){
-        u64 len=_v.size();
-        auto l1= ceilLog2(len)+1;
+    OPT op;
+    SparseTable(const std::vector<T>& inv,OPT inop):op(std::move(inop)),st(){
+        sz len=inv.size();
+        sz l1= ceilLog2(len)+1;
         st.resize(len,std::vector<T>(l1,0));
-        for (int i = 0; i < len; ++i) {
-            st[i][0]=_v[i];
+        for(i32 i=0;i<len;++i){
+            st[i][0]=inv[i];
         }
-        for (int j = 1; j < l1; ++j) {
-            i32 pj=(1<<(j-1));
+        for(i32 j=1;j<l1;++j){
+            i32 pj=1<<(j-1);
             for(i32 i=0;i+pj<len;++i){
-                st[i][j]=op(st[i][j-1],st[i+(1<<(j-1))][j-1]);
+                st[i][j]=op(st[i][j-1],st[i+pj][j-1]);
             }
         }
     }
-    T query(i32 l,i32 r){
-        i32 lt=r-l+1;
-        i32 q= floorLog2(lt);
+    T query(sz l,sz r){
+        sz lt=r-l+1;
+        sz q= floorLog2(lt);
         return op(st[l][q],st[r-(1<<q)+1][q]);
     }
 };
@@ -1912,4 +1918,5 @@ struct BigIntTiny {
     bool operator!=(const BigIntTiny &b) const { return !(*this == b); }
 };
 \end{lstlisting}
+
 \end{document}
