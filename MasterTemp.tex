@@ -232,6 +232,31 @@ long long lucas(long long n,long long m,long long p){
 }
 \end{lstlisting}
 \section{图论}
+\subsection{最短路}
+\subsubsection{Floyid}
+\begin{lstlisting}
+        i32 n,m;
+    cin>>n>>m;
+    std::vector f(n,std::vector<i64>(n,inf<i64>));
+    for(i32 i=0;i<n;++i){
+        f[i][i]=0;
+    }
+    for(i32 i=0;i<m;++i){
+        i64 u,v,w;
+        cin>>u>>v>>w;
+        u--,v--;
+        f[u][v]=std::min(f[u][v],w);
+        f[v][u]=std::min(f[v][u],w);
+    }
+    //floyd
+    for(i32 p=0;p<n;++p){
+        for(i32 i=0;i<n;++i){
+            for(i32 j=0;j<n;++j){
+                f[i][j]=std::min(f[i][j],f[i][p]+f[p][j]);
+            }
+        }
+    }
+\end{lstlisting}
 \subsection{连通性}
 \subsubsection{求割点（可重边）}
 \begin{lstlisting}
