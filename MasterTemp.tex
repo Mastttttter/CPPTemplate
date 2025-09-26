@@ -38,6 +38,9 @@
 \section{Math}
 \subsection{小结论}
 \[
+x+y= ( x\bigoplus y ) + 2 ( x \& y )
+\]
+\[
 \sum_{k=0}^{n-1} \left[ k \cdot (n-1-k) \right] = \binom{n}{3}
 \]
 上下取整
@@ -229,6 +232,126 @@ auto init=[](){
 long long lucas(long long n,long long m,long long p){
     if(m==0)return 1;
     return c[n%p][m%p]* lucas(n/p,m/p,p)%p;
+}
+\end{lstlisting}
+\subsection{线性基(极大线性无关组)}
+\subsubsection{异或线性基}
+\begin{lstlisting}
+    struct XorBasis {
+    std::vector<u32> b;
+    XorBasis(i32 n):b(n){}
+    void insert(u32 x) {
+        while (x) {
+            i32 i=std::bit_width(x)-1;
+            if (b[i]==0) {
+                b[i]=x;
+                return ;
+            }
+            x^=b[i];
+        }
+    }
+    u32 max_xor() {
+        u32 res=0;
+        for (i32 i=b.size()-1;i>=0;--i) {
+            res=std::max(res,res^b[i]);
+        }
+        return res;
+    }
+};
+\end{lstlisting}
+\subsection{多项式}
+\subsubsection{NTT}
+会出现负数，需要手动规范到正数
+
+用法：auto r=mul(vector,vector);
+\begin{lstlisting}
+    constexpr int P = 998244353;
+
+int power(int a, int b) {
+    int res = 1;
+    for (; b; b /= 2, a = 1LL * a * a % P) {
+        if (b % 2) {
+            res = 1LL * res * a % P;
+        }
+    }
+    return res;
+}
+
+std::vector<int> rev, roots {0, 1};
+
+void dft(std::vector<int> &a) {
+    int n = a.size();
+    if (int(rev.size()) != n) {
+        int k = __builtin_ctz(n) - 1;
+        rev.resize(n);
+        for (int i = 0; i < n; i++) {
+            rev[i] = rev[i >> 1] >> 1 | (i & 1) << k;
+        }
+    }
+    for (int i = 0; i < n; i++) {
+        if (rev[i] < i) {
+            std::swap(a[i], a[rev[i]]);
+        }
+    }
+    if (roots.size() < n) {
+        int k = __builtin_ctz(roots.size());
+        roots.resize(n);
+        while ((1 << k) < n) {
+            int e = power(31, 1 << (__builtin_ctz(P - 1) - k - 1));
+            for (int i = 1 << (k - 1); i < (1 << k); i++) {
+                roots[2 * i] = roots[i];
+                roots[2 * i + 1] = 1LL * roots[i] * e % P;
+            }
+            k++;
+        }
+    }
+
+    for (int k = 1; k < n; k *= 2) {
+        for (int i = 0; i < n; i += 2 * k) {
+            for (int j = 0; j < k; j++) {
+                int u = a[i + j];
+                int v = 1LL * a[i + j + k] * roots[k + j] % P;
+                a[i + j] = (u + v) % P;
+                a[i + j + k] = (u - v) % P;
+            }
+        }
+    }
+}
+
+void idft(std::vector<int> &a) {
+    int n = a.size();
+    std::reverse(a.begin() + 1, a.end());
+    dft(a);
+    int inv = (1 - P) / n;
+    for (int i = 0; i < n; i++) {
+        a[i] = 1LL * a[i] * inv % P;
+    }
+}
+
+std::vector<int> mul(std::vector<int> a, std::vector<int> b) {
+    int n = 1, tot = a.size() + b.size() - 1;
+    while (n < tot) {
+        n *= 2;
+    }
+    if (tot < 128) {
+        std::vector<int> c(a.size() + b.size() - 1);
+        for (int i = 0; i < a.size(); i++) {
+            for (int j = 0; j < b.size(); j++) {
+                c[i + j] = (c[i + j] + 1LL * a[i] * b[j]) % P;
+            }
+        }
+        return c;
+    }
+    a.resize(n);
+    b.resize(n);
+    dft(a);
+    dft(b);
+    for (int i = 0; i < n; i++) {
+        a[i] = 1LL * a[i] * b[i] % P;
+    }
+    idft(a);
+    a.resize(tot);
+    return a;
 }
 \end{lstlisting}
 \section{图论}
@@ -1064,7 +1187,7 @@ public:
 };
 \end{lstlisting}
 \section{STL相关}
-\subsection{hash模板偏特化与unorderedmap模板参数使用}
+\subsection{hash模板偏特化与unorderedmap模板参数使用,防卡hash}
 \begin{lstlisting}
     template<>
 struct std::hash<std::pair<int,int>>{
@@ -1075,6 +1198,20 @@ struct std::hash<std::pair<int,int>>{
 std::unordered_map<std::pair<int,int>,bool,std::hash<std::pair<int,int>>, decltype([](const auto&a,const auto&b){
     return a==b;
 })> map;
+\\防卡hash
+std::random_device rd;
+std::mt19937_64 gen(rd());
+i64 MAXINT=2e5+10;
+std::uniform_int_distribution<i64> distrib(MAXINT+1ll, MAXINT+200010ll);
+i64 RndGlobal;
+template<std::integral T>
+struct IntHash{
+    std::size_t operator()(const T &x)const{
+        return x%RndGlobal;
+    }
+};
+RndGlobal=distrib(gen);//in main()
+std::unordered_map<i64,i32,IntHash<i64>>map;
 \end{lstlisting}
 \section{字符串}
 \subsection{字典树}
@@ -1419,6 +1556,23 @@ while (r - l > 3) {
     if (f1 < f2) l = m1;
     else r = m2;
 }
+\end{lstlisting}
+\subsection{递推求子集各种和}
+\begin{lstlisting}
+    i32 n=nums.size();
+i32 sz=std::bit_width((u32)(std::ranges::max(nums)));
+i32 u=1<<n;
+std::vector<i32> sub_and(u),sub_xor(u);
+sub_and[0]=-1;
+for (i32 i=0;i<n;++i) {
+    i32 x=nums[i];
+    i32 high_bit=1<<i;
+    for (i32 m=0;m<high_bit;++m) {
+        sub_and[m|high_bit]=sub_and[m]&x;
+        sub_xor[m|high_bit]=sub_xor[m]^x;
+    }
+}
+sub_and[0]=0;
 \end{lstlisting}
 \section{模数模板，高进度+-*/}
 一劳永逸地解决模数/组合数学计算问题，因比较多，方便前面内容检索，就放最后了
