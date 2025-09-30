@@ -214,6 +214,47 @@ struct mint{
     }
 }
 \end{lstlisting}
+\subsubsection{中国剩余定理|ChineseRemainderTheorem}
+求下形式一元线性同余方程组
+$$
+\begin{cases}
+    x \equiv a_1 \pmod{n_1} \\
+    x \equiv a_2 \pmod{n_2} \\
+    \quad \vdots \\
+    x \equiv a_k \pmod{n_k}
+\end{cases}
+$$
+过程
+\begin{enumerate}
+    \item 计算所有模数乘积$n$;
+    \item 对于第$i$个方程：
+        \begin{enumerate}
+            \item 计算$m_i = \frac{n}{n_i}$
+            \item 计算$m_i$在$n_i$模逆$m_i^{-1}$
+            \item 计算$c_i=m_im_i^{-1}$(不要对$n_i$取模)
+        \end{enumerate}
+    \item 方程组在模$n$意义下的唯一解为:$x=\sum_{i=1}^{k}a_ic_i(mod n)$
+\end{enumerate}
+通常与lucas定理合用求小模数组合数（模数非质数）
+\begin{lstlisting}
+template<typename T>
+T euclid(T a,T b,T&x,T &y){
+    if(!b)return x=1,y=0,a;
+    T d=euclid(b,a%b,y,x);
+    return y-=a/b*x,d;
+}
+template<typename T>
+T CRT(const std::vector<T>a,const std::vector<T> r){
+    T n=1,ans=0;
+    for(auto&e:r)n*=e;
+    for(i32 i=0;i<a.size();++i){
+        T m=n/r[i],b,y;
+        euclid(m,r[i],b,y);
+        ans=(ans+a[i]*m*b%n)%n;
+    }
+    return (ans%n+n)%n;
+}
+\end{lstlisting}
 \subsection{组合数学}
 \subsubsection{lucas定理求小模数comb}
 在后面模数模板有详细的/更优化的版本
