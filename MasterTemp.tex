@@ -1153,6 +1153,146 @@ struct SegTree {
     }
 };
 \end{lstlisting}
+\subsubsection{动态开点标记持久化线段树}
+\begin{lstlisting}
+template<typename T>
+struct DynSegTree {
+    using sz=size_t;
+    struct Node {
+        T v=0;
+        T lz=0;
+        Node*l=0;
+        Node*r=0;
+    };
+    sz ed;
+    Node* rt=nullptr;
+    std::vector<Node*> GC;
+    Node* clone() {
+        GC.emplace_back(new Node());
+        return GC.back();
+    }
+    void upd(sz l,sz r,sz v,Node*& p,sz cl=0,sz cr=-1) {
+        if (!~cr)cr=ed;
+        if (!p)p=clone();
+        p->v+=(std::min(r,cr)-std::max(l,cl)+1)*v;
+        if (l<=cl&&cr<=r) {
+            p->lz+=v;
+            return ;
+        }
+        sz m=(cl+cr)>>1;
+        if (l<=m)upd(l,r,v,p->l,cl,m);
+        if (m<r)upd(l,r,v,p->r,m+1,cr);
+    }
+    void upd(sz l,sz r,T v) {
+        return upd(l,r,v,rt);
+    }
+    T get(sz l,sz r,Node*& p,sz cl=0,sz cr=-1,T lz=0) {
+        if (!~cr)cr=ed;
+        if (!p)p=clone();
+        if (l<=cl&&cr<=r)return p->v+lz*(cr-cl+1);
+        sz m=(cr+cl)>>1;
+        lz+=p->lz;
+        T res=0;
+        if (l<=m)res+=get(l,r,p->l,cl,m,lz);
+        if (m<r)res+=get(l,r,p->r,m+1,cr,lz);
+        return res;
+    }
+    T get(sz l,sz r) {
+        return get(l,r,rt)+(l+1+r+1)*(r-l+1)/2;
+    }
+    DynSegTree(sz n) {
+        ed=n-1;
+    }
+    ~DynSegTree() {
+        for(auto&e:GC)delete e;
+    }
+};
+\end{lstlisting}
+\subsubsection{主席树|可持久化线段树|函数式线段树}
+\begin{lstlisting}
+template<typename T>
+struct ExtSegTree {
+    using sz=size_t;
+    struct Node {
+        T v=0;
+        T lz=0;
+        Node*l=0;
+        Node*r=0;
+        Node(Node* p) {
+            if (!p)return;
+            v=p->v;
+            lz=p->lz;
+            l=p->l;
+            r=p->r;
+        }
+    };
+    sz ed;
+    std::vector<Node*> rt;
+    std::vector<Node*> GC;
+    Node* clone(Node*p= nullptr) {
+        GC.emplace_back(new Node(p));
+        return GC.back();
+    }
+    void upd(sz l,sz r,T v,Node*& p,sz cl=0,sz cr=-1) {
+        if (!~cr)cr=ed;
+        p=clone(p);
+        p->v+=(std::min(r,cr)-std::max(l,cl)+1)*v;
+        if (l<=cl&&cr<=r) {
+            p->lz+=v;
+            return ;
+        }
+        sz m=(cl+cr)>>1;
+        if (l<=m)upd(l,r,v,p->l,cl,m);
+        if (m<r)upd(l,r,v,p->r,m+1,cr);
+    }
+    void upd(sz l,sz r,T v,sz k=-1) {
+        if (!~k||k==rt.size()){
+            k=rt.size();
+            rt.emplace_back((rt.empty()?nullptr:rt.back() ));
+        }else{
+            rt[k]=rt[k-1];
+        }
+        return upd(l,r,v,rt[k]);
+    }
+    T get(sz l,sz r,Node*& p,sz cl=0,sz cr=-1,T lz=0) {
+        if (!~cr)cr=ed;
+        if (!p)p= clone();
+        if (l<=cl&&cr<=r)return p->v+lz*(cr-cl+1);
+        sz m=(cr+cl)>>1;
+        lz+=p->lz;
+        T res=0;
+        if (l<=m)res+=get(l,r,p->l,cl,m,lz);
+        if (m<r)res+=get(l,r,p->r,m+1,cr,lz);
+        return res;
+    }
+    T get(sz l,sz r,sz k=-1) {
+        if (!~k){
+            if (rt.empty())rt.emplace_back(nullptr);
+            k=rt.size()-1;
+        }
+        return get(l,r,rt[k]);
+    }
+    Node* build(const std::vector<T>&inv,sz cl,sz cr){
+        auto p= clone();
+        if(cl==cr){
+            p->v=inv[cl];
+            return p;
+        }
+        sz m=(cr+cl)>>1;
+        p->l= build(inv,cl,m);
+        p->r= build(inv,m+1,cr);
+        p->v=p->l->v+p->r->v;
+        return p;
+    }
+    ExtSegTree(sz n):rt(),ed(n-1){}
+    ExtSegTree(const std::vector<T>& inv):ed(inv.size()-1),rt(){
+        rt.emplace_back(build(inv,0,ed));
+    }
+    ~ExtSegTree() {
+        for (auto&e:GC)delete e;
+    }
+};
+\end{lstlisting}
 \subsection{树状数组|bit|Fenwick}
 \begin{lstlisting}
     template<typename T>
