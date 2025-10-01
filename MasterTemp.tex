@@ -255,6 +255,16 @@ T CRT(const std::vector<T>a,const std::vector<T> r){
     return (ans%n+n)%n;
 }
 \end{lstlisting}
+\subsubsection{裴蜀定理}
+裴蜀定理揭示了最大公约数与整数线性组合之间的深刻联系，是数论中最基础也最重要的结论之一。
+
+设 $a,b$ 是不全为零的整数。那么，对于任意整数 $x,y$，都有 $\gcd(a,b)\mid ax+by$ 成立；而且，存在整数 $x,y$，使得 $ax+by=\gcd(a,b)$ 成立。
+
+设 $a_1,a_2,\cdots,a_n$ 是不全为零的整数。那么，对于任意整数 $x_1,x_2,\cdots,x_n$，都有 $\gcd(a_1,a_2,\cdots,a_n)\mid a_1x_1+a_2x_2+\cdots+a_nx_n$ 成立；而且，存在整数 $x_1,x_2,\cdots,x_n$，使得 $\gcd(a_1,a_2,\cdots,a_n)=a_1x_1+a_2x_2+\cdots+a_nx_n$ 成立。
+
+Sylvester 定理
+
+对于互素的正整数 $a_1,a_2$，不能够写作 $a_1x_1+a_2x_2~(x_1,x_2\in\mathbf N)$ 的最大整数是 $C = a_1a_2 - a_1 - a_2$。而且，对于所有 $k\in\mathbf Z$，整数 $k$ 和 $C-k$ 中有且只有一个可以写作该形式。
 \subsection{组合数学}
 \subsubsection{lucas定理求小模数comb}
 在后面模数模板有详细的/更优化的版本
