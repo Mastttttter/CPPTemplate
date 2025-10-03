@@ -1668,6 +1668,20 @@ public:
     }
 };
 \end{lstlisting}
+\section{经典问题}
+\subsection{LIS问题}
+\begin{enumerate}
+    \item $dp$设$dp[i]$为以i结尾的LIS长度,使用线段树/FenwickTree优化
+    \item 设 $v[i]$是长度为$i$的LIS的最小结尾,使用lower\_bound更新已有的情况,或者加入新的情况
+    耐心排序（Patience Sorting）
+    \begin{enumerate}
+        \item 从左到右扫描序列中的元素
+        \item 每张牌要放在最左边能放置它的牌堆顶（即放到比它大的牌的堆上，如果没有合适的堆，则新建一堆）
+        \item 牌堆的个数 = 原序列的 LIS 长度。
+    \end{enumerate}
+\end{enumerate}
+\subsection{LCS}
+转化为LIS问题求
 \section{小技巧}
 \subsection{二维差分}
 \begin{lstlisting}
