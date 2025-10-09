@@ -55,6 +55,9 @@ ab\ge c \equiv a\ge \lceil \frac{c}{b} \rceil
 \]
 \subsection{number theory}
 \subsubsection{number theory的小结论}
+\[
+gcd(a,b)=gcd(a,b-a)//a<b
+\]
 \begin{lstlisting}
     int xor_0_n(int n) {
     int rem = n % 4;
@@ -1381,6 +1384,19 @@ public:
 };
 \end{lstlisting}
 \section{STL相关}
+\subsection{gcc内建函数}
+\begin{lstlisting}
+int __builtin_ctz (unsigned int x)
+这个函数作用是返回输入数二进制表示从最低位开始(右起)的连续的0的个数；如果传入0则行为未定义。三个函数分别用于unsigned int，unsigned long以及unsigned long long。
+int __builtin_clz (unsigned int x)
+这个函数作用是返回输入数二进制表示从最高位开始(左起)的连续的0的个数；如果传入0则行为未定义。三个不同的函数分别用于unsigned int，unsigned long以及unsigned long long。
+int __builtin_ffs (unsigned int x)
+这个函数作用是返回输入数二进制表示的最低非0位的下标，下标从1开始计数；如果传入0则返回0。三个不同的函数分别用于unsigned int，unsigned long以及unsigned long long。
+int __builtin_popcount (unsigned int x)
+这个函数作用是返回输入的二进制表示中1的个数；如果传入0则返回 0 。三个不同的函数分别用于unsigned int，unsigned long以及unsigned long long。
+int __builtin_parity (unsigned int x)
+这个函数作用是返回输入的二进制表示中1的个数的奇偶,也就是输入的二进制中1的个数对2取模的结果。三个不同的函数分别用于unsigned int，unsigned long以及unsigned long long。
+\end{lstlisting}
 \subsection{hash模板偏特化与unorderedmap模板参数使用,防卡hash}
 \begin{lstlisting}
     template<>
