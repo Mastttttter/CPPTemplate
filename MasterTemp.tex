@@ -319,8 +319,51 @@ long long lucas(long long n,long long m,long long p){
 \subsection{多项式}
 \subsubsection{NTT}
 会出现负数，需要手动规范到正数
-
-用法：auto r=mul(vector,vector);
+$（g 是mod(r*2^k+1)的原根）$
+常用素数：
+P = 1004535809  ====>  pr = 3
+P = 998244353  =====>  pr = 3
+素数  r  k  g
+3   1   1   2
+5   1   2   2
+17  1   4   3
+97  3   5   5
+193 3   6   5
+257 1   8   3
+7681    15  9   17
+12289   3   12  11
+40961   5   13  3
+65537   1   16  3
+786433  3   18  10
+5767169 11  19  3
+7340033 7   20  3
+23068673    11  21  3
+104857601   25  22  3
+167772161   5   25  3
+469762049   7   26  3
+1004535809  479 21  3
+2013265921  15  27  31
+2281701377  17  27  3
+3221225473  3   30  5
+75161927681 35  31  3
+77309411329 9   33  7
+206158430209    3   36  22
+2061584302081   15  37  7
+2748779069441   5   39  3
+6597069766657   3   41  5
+39582418599937  9   42  5
+79164837199873  9   43  5
+263882790666241 15  44  7
+1231453023109121    35  45  3
+1337006139375617    19  46  3
+3799912185593857    27  47  5
+4222124650659841    15  48  19
+7881299347898369    7   50  6
+31525197391593473   7   52  3
+180143985094819841  5   55  6
+1945555039024054273 27  56  5
+4179340454199820289 29  57  3
+用法：$auto r=mul(vector,vector);$
 \begin{lstlisting}
     constexpr int P = 998244353;
 
@@ -1384,6 +1427,58 @@ public:
 };
 \end{lstlisting}
 \section{STL相关}
+\subsection{temp}
+\begin{lstlisting}
+    #ifdef LOCAL
+#include <fstream>
+std::ifstream fs("./in",std::ios::in);
+#define cin fs
+#else
+#define cin std::cin
+#endif
+using i32=int;
+using i64=long long;
+using u64=unsigned long long;
+using u32=unsigned;
+using u128=unsigned __int128;
+using i128=__int128;
+template<std::signed_integral T>
+const T inf=std::numeric_limits<T>::max()>>1;
+template<std::signed_integral T>
+const T iinf=std::numeric_limits<T>::min()>>1;
+const i64 i64inf=inf<i64>;
+std::random_device rd;
+std::mt19937_64 gen(rd());
+const i64 MAXINT=10000001;
+std::uniform_int_distribution<i64> distrib(MAXINT+1ll, MAXINT+200010ll);
+i64 RndGlobal;
+template<std::integral T>
+struct IntHash{
+    std::size_t operator()(const T &x)const{
+        return x%RndGlobal;
+    }
+};
+template<std::integral T,typename V>
+using map=std::unordered_map<T,V,IntHash<T>>;
+struct AhoCorasic{
+};
+void solve(){
+}
+signed main(){
+    std::ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    RndGlobal=distrib(gen);
+    i32 o=1;
+//    cin>>o;
+    while(o--){
+        solve();
+    }
+#ifdef LOCAL
+    fs.close();
+#endif
+    return 0;
+}
+\end{lstlisting}
 \subsection{gcc内建函数}
 \begin{lstlisting}
 int __builtin_ctz (unsigned int x)
@@ -1465,6 +1560,7 @@ public:
 };
 \end{lstlisting}
 \subsection{ac自动机}
+给你一个文本串 S 和 n 个模式串 T 1-n ，请你分别求出每个模式串 T i在 S 中出现的次数。
 \begin{lstlisting}
     struct AhoCorasic{
             std::vector<std::vector<i32>> trie;
