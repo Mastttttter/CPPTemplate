@@ -122,6 +122,19 @@ for(auto&e:fac[x]){
     }
 }
 \end{lstlisting}
+\subsubsection{筛法求每个数去除其完全平方因子}
+\begin{lstlisting}
+constexpr i32 mx=1000001;
+std::array<i32,mx> fac{};
+auto init=[](){
+    for(i32 i=1;i<mx;++i)if(!fac[i]){
+        for(i32 j=1;i*j*j<mx;++j){
+            fac[i*j*j]=i;
+        }
+    }
+    return 0;
+}();
+\end{lstlisting}
 \subsubsection{欧几里得uclid}
 \begin{lstlisting}
     int gcd(int a, int b) {
@@ -319,53 +332,98 @@ long long lucas(long long n,long long m,long long p){
 \subsection{多项式}
 \subsubsection{NTT}
 会出现负数，需要手动规范到正数
-$（g 是mod(r*2^k+1)的原根）$
+
+（$g $是$mod(r*2^k+1)$的原根）
+
 常用素数：
+
 P = 1004535809  ====>  pr = 3
+
 P = 998244353  =====>  pr = 3
+
 素数  r  k  g
+
 3   1   1   2
+
 5   1   2   2
+
 17  1   4   3
+
 97  3   5   5
+
 193 3   6   5
+
 257 1   8   3
+
 7681    15  9   17
+
 12289   3   12  11
+
 40961   5   13  3
+
 65537   1   16  3
+
 786433  3   18  10
+
 5767169 11  19  3
+
 7340033 7   20  3
+
 23068673    11  21  3
+
 104857601   25  22  3
+
 167772161   5   25  3
+
 469762049   7   26  3
+
 1004535809  479 21  3
+
 2013265921  15  27  31
+
 2281701377  17  27  3
+
 3221225473  3   30  5
+
 75161927681 35  31  3
+
 77309411329 9   33  7
+
 206158430209    3   36  22
+
 2061584302081   15  37  7
+
 2748779069441   5   39  3
+
 6597069766657   3   41  5
+
 39582418599937  9   42  5
+
 79164837199873  9   43  5
+
 263882790666241 15  44  7
+
 1231453023109121    35  45  3
+
 1337006139375617    19  46  3
+
 3799912185593857    27  47  5
+
 4222124650659841    15  48  19
+
 7881299347898369    7   50  6
+
 31525197391593473   7   52  3
+
 180143985094819841  5   55  6
+
 1945555039024054273 27  56  5
+
 4179340454199820289 29  57  3
+
 用法：$auto r=mul(vector,vector);$
 \begin{lstlisting}
-    constexpr int P = 998244353;
+constexpr int P = 998244353;
 
 int power(int a, int b) {
     int res = 1;
@@ -1783,6 +1841,10 @@ public:
     }
 };
 \end{lstlisting}
+\section{计算几何}
+\subsection{基础}
+\subsubsection{极角排序}
+$atan2(double y,double x)$ 返回$\theta\in ( -\pi , \pi ], \theta = \arctan \frac{y}{x}$
 \section{经典问题}
 \subsection{LIS问题}
 \begin{enumerate}
