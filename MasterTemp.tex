@@ -1453,7 +1453,7 @@ struct ExtSegTree {
 \end{lstlisting}
 \subsection{树状数组|bit|Fenwick}
 \begin{lstlisting}
-    template<typename T>
+template<typename T>
 struct FenwickTree{
 public:
     std::vector<T> tree;
@@ -1475,12 +1475,28 @@ public:
         return s;
     }
     void update(int i,T val){
+        ++i;
         for(;i<tree.size();i+=i&-i){
             tree[i]+=val;
         }
     }
     T query(int l,int r){
+        if (l>=tree.size()-1||r>=tree.size()-1||l>r)return 0;
         return pre(r+1)-pre(l);
+    }
+    // 权值树状数组查询第 k 小
+    int kth(T k) {
+        T sum = 0;
+        int x = 0;
+        int n=tree.size()-1;
+        for (int i = floorLog2(n); ~i; --i) {
+            x += 1 << i;                    // 尝试扩展
+            if (x >= n || sum + tree[x] >= k)  // 如果扩展失败
+                x -= 1 << i;
+            else
+                sum += tree[x];
+        }
+        return x;
     }
 };
 \end{lstlisting}
@@ -1846,6 +1862,9 @@ public:
 \subsubsection{极角排序}
 $atan2(double y,double x)$ 返回$\theta\in ( -\pi , \pi ], \theta = \arctan \frac{y}{x}$
 \section{经典问题}
+\subsection{求中位数}
+使用权值树状数组维护值，使用倍增法再FenwickTree上倍增求第K小
+在滑动窗口问题中可以使用对顶堆
 \subsection{LIS问题}
 \begin{enumerate}
     \item $dp$设$dp[i]$为以i结尾的LIS长度,使用线段树/FenwickTree优化
