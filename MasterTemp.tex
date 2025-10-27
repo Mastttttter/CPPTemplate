@@ -984,6 +984,9 @@ inline T ceilLog2(T x){
 }
 template <typename T>
 inline T floorLog2(T x){
+    if (x==0){
+        return 0;
+    }
     u64 tx=x;
     auto bw= sizeof(tx)*8;
     return bw-1-__builtin_clzll(tx);
@@ -1593,6 +1596,136 @@ RndGlobal=distrib(gen);//in main()
 std::unordered_map<i64,i32,IntHash<i64>>map;
 \end{lstlisting}
 \section{字符串}
+\subsection{后缀数组SA}
+$sa[i]$表示将所有后缀排序后第$𝑖$小的后缀的编号也是所说的后缀数组
+
+$rk[i]$表示后缀i 的排名
+
+$sa[rk[i]]=rk[sa[i]]=i$
+
+lc数组
+
+lc[i]=lcp(sa[i],sa[i+1])，即第i 名的后缀与它后一名的后缀的最长公共前缀
+
+lc[n-1] 可以视作0,在下面的实现中没有这一项lc的长度为n-1
+
+$lcp(sa[i],sa[j]) =min{lc[i..j-1]}$
+
+比较两字符串
+
+假设需要比较的是 $A = S[a..b]$ 和 $B = S[c..d]$ 的大小关系。
+
+若 $\mathrm{lcp}(a, c) \ge \min(|A|, |B|)$，$A < B \iff |A| < |B|$。
+
+否则，$A < B \iff \mathrm{rk}[a] < \mathrm{rk}[c]$。
+\begin{lstlisting}
+\\应当保证输入非空
+struct SuffixArray {
+    int n;
+    std::vector<int> sa, rk, lc;
+    SuffixArray(const std::string &s) {
+        n = s.length();
+        sa.resize(n);
+        lc.resize(n - 1);
+        rk.resize(n);
+        std::iota(sa.begin(), sa.end(), 0);
+        std::sort(sa.begin(), sa.end(),
+            [&](int a, int b) {
+                return s[a] < s[b];
+            });
+        rk[sa[0]] = 0;
+        for (int i = 1; i < n; i++) {
+            rk[sa[i]] = rk[sa[i - 1]] + (s[sa[i]] != s[sa[i - 1]]);
+        }
+        int k = 1;
+        std::vector<int> tmp, cnt(n);
+        tmp.reserve(n);
+        while (rk[sa[n - 1]] < n - 1) {
+            tmp.clear();
+            for (int i = 0; i < k; i++) {
+                tmp.push_back(n - k + i);
+            }
+            for (auto i : sa) {
+                if (i >= k) {
+                    tmp.push_back(i - k);
+                }
+            }
+            std::fill(cnt.begin(), cnt.end(), 0);
+            for (int i = 0; i < n; i++) {
+                cnt[rk[i]]++;
+            }
+            for (int i = 1; i < n; i++) {
+                cnt[i] += cnt[i - 1];
+            }
+            for (int i = n - 1; i >= 0; i--) {
+                sa[--cnt[rk[tmp[i]]]] = tmp[i];
+            }
+            std::swap(rk, tmp);
+            rk[sa[0]] = 0;
+            for (int i = 1; i < n; i++) {
+                rk[sa[i]] = rk[sa[i - 1]] + (tmp[sa[i - 1]] < tmp[sa[i]] || sa[i - 1] + k == n || tmp[sa[i - 1] + k] < tmp[sa[i] + k]);
+            }
+            k *= 2;
+        }
+        for (int i = 0, j = 0; i < n; i++) {
+            if (rk[i] == 0) {
+                j = 0;
+            } else {
+                for (j -= (j > 0); i + j < n && sa[rk[i] - 1] + j < n && s[i + j] == s[sa[rk[i] - 1] + j]; j++)
+                    ;
+                lc[rk[i] - 1] = j;
+            }
+        }
+    }
+};
+// in oth functions
+SuffixArray sa(ts);
+SparseTable st(sa.lc,[&](const auto &l,const auto&r){
+    return std::min(l,r);
+});
+auto lcp=[&](i32 l,i32 r){
+    if (l==r) return (i32)sa.sa.size()-l;
+    if (sa.rk[l]>sa.rk[r]){
+        std::swap(l,r);
+    }
+    return st.query(sa.rk[l],sa.rk[r]-1);
+};
+//c>0小于 ==0 <0大于
+auto comp=[&](i32 a,i32 b,i32 c,i32 d){
+    if (lcp(a,c)>=std::min(b-a+1,d-c+1)){
+        return d-c-b+a;
+    }else{
+        return sa.rk[c]-sa.rk[a];
+    }
+};
+\end{lstlisting}
+\subsection{字符串哈希}
+双值哈希：
+\begin{lstlisting}
+using ull = unsigned long long;
+ull base = 131;
+ull mod1 = 212370440130137957, mod2 = 1e9 + 7;
+
+ull get_hash1(std::string s) {
+  int len = s.size();
+  ull ans = 0;
+  for (int i = 0; i < len; i++) ans = (ans * base + (ull)s[i]) % mod1;
+  return ans;
+}
+
+ull get_hash2(std::string s) {
+  int len = s.size();
+  ull ans = 0;
+  for (int i = 0; i < len; i++) ans = (ans * base + (ull)s[i]) % mod2;
+  return ans;
+}
+
+bool cmp(const std::string s, const std::string t) {
+  bool f1 = get_hash1(s) != get_hash1(t);
+  bool f2 = get_hash2(s) != get_hash2(t);
+  return f1 || f2;
+}
+\end{lstlisting}
 \subsection{字典树}
 \begin{lstlisting}
     class Trie{
