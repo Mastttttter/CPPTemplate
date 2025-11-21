@@ -971,6 +971,61 @@ std::cout<<ans<<'\n';
 \end{lstlisting}
 \section{数据结构}
 约定：除了树状数组，都以0作为起始下标
+\subsection{珂朵莉树|ODT}
+std::map 实现，其键维护左端点，其值维护其对应的左端点到下一个左端点之前的值。
+
+l,r,为左闭右开
+\begin{lstlisting}
+struct ODT{
+    std::map<i32,i32> mp;
+    ODT(i32 l,i32 r,i32 v=-1){
+        mp[l]=v;
+        mp[r+1]=v;
+    }
+    auto split(i32 pos){
+        auto it=std::prev(mp.upper_bound(pos));
+        return mp.insert(it,std::make_pair(pos,it->second));
+    }
+    void assign(i32 l,i32 r,i32 v){
+        auto it=split(l);
+        split(r);
+        while (it->first!=r){
+            it=mp.erase(it);
+        }
+        mp[l]=v;
+    }
+    void perform(i32 l,i32 r){
+        auto it= split(l);
+        split(r);
+        while (it->first!=r){
+            //
+            it=std::next(it);
+        }
+    }
+};
+\end{lstlisting}
+求区间和example
+\begin{lstlisting}
+i32 perform(i32 l,i32 r){
+    auto it= split(l);
+    split(r);
+    i32 sum=0;
+    i32 pre=-1;
+    i32 prev=-1;
+    while (true){
+        if (~pre){
+            sum+=prev*(it->first-pre);
+        }
+        pre=it->first;
+        prev=it->second;
+        if (it->first==r){
+            break;
+        }
+        it=std::next(it);
+    }
+    return sum;
+}
+\end{lstlisting}
 \subsection{ST表}
 \begin{lstlisting}
 template <typename T>
