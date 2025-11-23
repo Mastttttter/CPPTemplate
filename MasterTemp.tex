@@ -2163,6 +2163,24 @@ for (i32 i=0;i<n;++i) {
 }
 sub_and[0]=0;
 \end{lstlisting}
+\subsection{SOS(sub of section) DP|高维前缀和|子集和DP}
+\begin{lstlisting}
+for(i32 i=0;i<wid;++i){
+    for(i32 s=0;s<u;++s){
+        if (s>>i&1){
+            f[s]+=f[s^(1<<i)];
+        }
+    }
+}
+面对超集的版本：
+for(i32 i=0;i<wid;++i){
+    for(i32 s=u-1;s>=0;--s){
+        if (!(s>>i&1)){
+            f[s]+=f[s^(1<<i)];
+        }
+    }
+}
+\end{lstlisting}
 \section{模数模板，高进度+-*/}
 一劳永逸地解决模数/组合数学计算问题，因比较多，方便前面内容检索，就放最后了
 \subsection{静态模数}
