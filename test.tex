@@ -1,0 +1,75 @@
+\documentclass[UTF8]{ctexart}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{xcolor}
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{1,1,1}
+
+\lstdefinestyle{cppstyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2,
+    language=C++
+}
+\lstset{style=cppstyle}
+\title{Master's c++ template lib}
+\author{Master}
+\date{\today}
+\begin{document}
+\begin{titlepage}
+    \maketitle
+\end{titlepage}
+\tableofcontents
+\section{Math}
+\subsection{小结论}
+\[
+x+y= ( x\bigoplus y ) + 2 ( x \& y )
+\]
+\[
+\sum_{k=0}^{n-1} \left[ k \cdot (n-1-k) \right] = \binom{n}{3}
+\]
+上下取整
+\[
+\lceil x \rceil = - \lfloor - x \rfloor
+\]
+\[
+\lceil \frac{a}{b} \rceil =\lfloor \frac{(a+b-1)}{b} \rfloor = \lfloor \frac{a-1}{b} \rfloor +1
+\]
+\[
+ab\ge c \equiv a\ge \lceil \frac{c}{b} \rceil
+\]
+\subsection{number theory}
+\subsubsection{number theory的小结论}
+\[
+gcd(a,b)=gcd(a,b-a)//a<b
+\]
+\begin{lstlisting}
+    int xor_0_n(int n) {
+    int rem = n % 4;
+    if (rem == 0) {
+        return n;
+    }
+    if (rem == 1) {
+        return 1;
+    }
+    if (rem == 2) {
+        return n + 1;
+    }
+    return 0;
+}
+\end{lstlisting}

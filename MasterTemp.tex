@@ -1,3 +1,4 @@
+%!TEX program  = xelatex
 \documentclass[UTF8]{ctexart}
 \usepackage{amsmath}
 \usepackage{listings}
@@ -2049,6 +2050,115 @@ public:
 \subsection{基础}
 \subsubsection{极角排序}
 $atan2(double y,double x)$ 返回$\theta\in ( -\pi , \pi ], \theta = \arctan \frac{y}{x}$
+\subsubsection{凸包}
+\begin{lstlisting}
+//use point
+struct Point {
+    i64 x;
+    i64 y;
+    Point() : x{0}, y{0} {}
+    Point(i64 x_, i64 y_) : x{x_}, y{y_} {}
+};
+
+i64 dot(Point a, Point b) {
+    return a.x * b.x + a.y * b.y;
+}
+
+i64 cross(Point a, Point b) {
+    return a.x * b.y - a.y * b.x;
+}
+
+Point operator+(Point a, Point b) {
+    return Point(a.x + b.x, a.y + b.y);
+}
+
+Point operator-(Point a, Point b) {
+    return Point(a.x - b.x, a.y - b.y);
+}
+
+auto getHull(std::vector<Point> p) {
+    std::sort(p.begin(), p.end(),
+        [&](auto a, auto b) {
+            return a.x < b.x || (a.x == b.x && a.y < b.y);
+        });
+    
+    std::vector<Point> hi, lo;
+    for (auto p : p) {
+        while (hi.size() > 1 && cross(hi.back() - hi[hi.size() - 2], p - hi.back()) >= 0) {
+            hi.pop_back();
+        }
+        while (!hi.empty() && hi.back().x == p.x) {
+            hi.pop_back();
+        }
+        hi.push_back(p);
+        while (lo.size() > 1 && cross(lo.back() - lo[lo.size() - 2], p - lo.back()) <= 0) {
+            lo.pop_back();
+        }
+        if (lo.empty() || lo.back().x < p.x) {
+            lo.push_back(p);
+        }
+    }
+    return std::make_pair(hi, lo);
+}
+
+const double inf = INFINITY;
+//use std::complex
+using Point = std::complex<i64>;
+
+#define x real
+#define y imag
+
+auto dot(const Point &a, const Point &b) {
+    return (std::conj(a) * b).x();
+}
+
+auto cross(const Point &a, const Point &b) {
+    return (std::conj(a) * b).y();
+}
+
+auto rot(const Point &p) {
+    return Point(-p.y(), p.x());
+}
+
+auto complexHull(std::vector<Point> a) {
+    std::sort(a.begin(), a.end(), [&](auto a, auto b) {
+        if (a.x() != b.x()) {
+            return a.x() < b.x();
+        } else {
+            return a.y() < b.y();
+        }
+    });
+
+    std::vector<Point> l, h;
+
+    for (auto p : a) {
+        while (l.size() > 1 && cross(l.back() - l[l.size() - 2], p - l.back()) <= 0) {
+            l.pop_back();
+        }
+
+        while (h.size() > 1 && cross(h.back() - h[h.size() - 2], p - h.back()) >= 0) {
+            h.pop_back();
+        }
+
+        l.push_back(p);
+        h.push_back(p);
+    }
+
+    std::reverse(h.begin(), h.end());
+
+    h.insert(h.end(), l.begin() + 1, l.end() - 1);
+
+    return h;
+}
+
+int sgn(Point p) {
+    if (p.y() > 0 || (p.y() == 0 && p.x() < 0)) {
+        return 0;
+    } else {
+        return 1;
+    }
+}
+\end{lstlisting}
 \section{经典问题}
 \subsection{求中位数}
 使用权值树状数组维护值，使用倍增法再FenwickTree上倍增求第K小
