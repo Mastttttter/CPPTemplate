@@ -39,6 +39,9 @@
 \section{Math}
 \subsection{小结论}
 \[
+\lfloor \frac{n}{m} \rfloor \% p \equiv \lfloor \frac{n \% (mp)}{m} \rfloor
+\]
+\[
 x+y= ( x\bigoplus y ) + 2 ( x \& y )
 \]
 \[
@@ -514,6 +517,12 @@ std::vector<int> mul(std::vector<int> a, std::vector<int> b) {
 }
 \end{lstlisting}
 \section{图论}
+\subsection{欧拉回路}
+在图论中，欧拉路径（Eulerian path）是经过图中每条边恰好一次的路径，欧拉回路（Eulerian circuit）是经过图中每条边恰好一次的回路． 如果一个图中存在欧拉回路，则这个图被称为欧拉图（Eulerian graph）；如果一个图中不存在欧拉回路但是存在欧拉路径，则这个图被称为半欧拉图（semi-Eulerian graph）．
+
+对于连通图 𝐺 G，以下三个性质是互相等价的： 𝐺 G 是欧拉图； 𝐺 G 中所有顶点的度数都是偶数（对于有向图，每个顶点的入度等于出度）； 𝐺 G 可被分解为若干条不共边回路的并．
+
+求法：dfs经过的边相连构成一个欧拉回路，所有对于每个点度数都是偶数的图，选取任意点开始dfs即可，对于恰好有两个奇数度数的点的图，选取任意奇数点作起点开始dfs即可得到欧拉路径，对于其他情况无欧拉回路/欧拉路径。
 \subsection{最短路}
 \subsubsection{Floyid}
 \begin{lstlisting}
@@ -971,7 +980,334 @@ std::cout<<ans<<'\n';
     }
 \end{lstlisting}
 \section{数据结构}
-约定：除了树状数组，都以0作为起始下标
+约定：除了树状数组,笛卡尔树，都以0作为起始下标
+\subsection{CartesianTree}
+1based idx
+
+\begin{lstlisting}
+// 笛卡尔树，默认为大根堆
+template <class T, typename Compare = std::greater<T>>
+struct CartesianTree {
+    T inf = std::numeric_limits<T>::max();
+
+    struct Node {
+        int idx;                 // 原数组下标
+        T val;                   // 权值
+        int par, siz;            // 父节点索引，子树大小
+        std::array<int, 2> son;  // 左儿子，右儿子
+
+        Node(int idx = 0, T val = 0, int par = 0, int siz = 0) : idx(idx), val(val), par(par), siz(siz), son{} {}
+    };
+
+    std::vector<Node> t;
+
+    CartesianTree() { init(); }
+
+    void init(Compare comp = Compare()) {
+        t.assign(1, {0, 0, 0});
+        t[0].son.fill(0);
+        if (comp(-inf, inf))
+            t[0].val = -inf;
+        else
+            t[0].val = inf;
+    }  // 自动建立虚拟节点
+
+    void add(int idx, T val, int par = 0) { t.emplace_back(idx, val, par); }  // 负责把元素加进末尾，需要使用1-based
+
+    int work(Compare comp = Compare()) {
+        for (int i = 1; i < t.size(); i++) {
+            int k = i - 1;
+            while (comp(t[i].val, t[k].val)) k = t[k].par;
+            t[i].son[0] = t[k].son[1];
+            t[k].son[1] = i;
+            t[i].par = k;
+            t[t[i].son[0]].par = i;
+        }  // 遍历，砍树枝
+        auto dfs = [&](auto&& dfs, int u) -> void {
+            if (!u) return;
+            t[u].siz = 1;
+            dfs(dfs, ls(u));
+            dfs(dfs, rs(u));
+            t[u].siz += t[ls(u)].siz + t[rs(u)].siz;
+        };  // 进行一个dfs
+        dfs(dfs, t[0].son[1]);
+        return t[0].son[1];
+    }
+
+    int Left(int p) { return p - size(ls(p)); }  // 左边最远
+
+    int Right(int p) { return p + size(rs(p)); }  // 右边最远
+
+    int size(int p) { return t[p].siz; }
+
+    int ls(int p) { return t[p].son[0]; }
+
+    int rs(int p) { return t[p].son[1]; }
+
+    int par(int p) { return t[p].par; }
+};
+\end{lstlisting}
+\subsection{SortedList}
+%https://leetcode.cn/discuss/post/3276177/geng-kuai-de-sortedlistplus-by-424479543-6whe/
+
+假设我们有一个容器，它需要支持以下四种操作：
+
+往容器里添加一个给定元素x；
+
+在容器里删除一个指定元素x；
+
+查询一个元素x在容器里的名次rank；
+
+查询容器里第rank个大的元素；
+
+\begin{lstlisting}
+template <typename _Tp = int, unsigned load1 = 200, unsigned load2 = 64>
+struct sortedlistPlus {
+    using Iterator = vector<_Tp>::iterator;
+    const unsigned load1X = load1 * 2;
+    const unsigned load2X = load2 * 2, lg2 = __lg(load2X);
+    const _Tp minVal = std::numeric_limits<_Tp>::min();
+    vector<vector<_Tp>> blocks; // blocks,bitCnt长度相同，都是1+小块的个数，≈n/load1
+    vector<int> bitCnt;         // blocks每个元素中存的是一小块数据，bitCnt是小块.size()的树状数组
+    vector<_Tp> blkMax;         // blkMax[i]中存blocks[i].back()
+    vector<_Tp> segMax;         // segMax,segSize长度相同,都是小段的个数 ≈ n/(load1*load2), segMax表示小段内元素最大值
+    vector<int> segSize;        // segSize表示小段内非空小块个数,segSize[i]∈[1,2load2-1]
+    int elementCnt;
+    sortedlistPlus() { clear(); }
+    sortedlistPlus(vector<_Tp> A) {
+        ranges::sort(A);
+        elementCnt = A.size();
+        blocks.reserve(elementCnt / load1 + 2);
+        blocks.resize(1);
+        for (int l = 0; l < elementCnt; l += load1)
+            blocks.emplace_back(A.data() + l, A.data() + min<int>(l + load1, elementCnt));
+        _expand();
+    }
+    void clear() {
+        blocks.resize(1); // 0th位置空着,从1st小块开始存数，方便树状数组管理
+        bitCnt.resize(1);
+        blkMax.resize(1);
+        segMax.clear(), segSize.clear();
+        elementCnt = 0;
+    }
+    void chmax(_Tp &a, auto &&b) {
+        if (b > a) a = b;
+    }
+    pair<int, Iterator> lower_bound(_Tp x) {              // 找到x的lower_bound在哪一个小块、块内的位置
+        if (segSize.empty()) return {0, blocks[0].end()}; // SL为空
+        int l = -1, r = segSize.size() - 1, mid;
+        // 1.在小段和小段之间二分，一共n/(load1*load2)个小段，复杂度log(n)-log(load1)-log(load2)
+        while (r - l > 1) if (segMax[mid = l + r >> 1] >= x) r = mid; else l = mid;
+        // 最终的r就是小段编号segi;
+
+        // 2.在小段内非空小块之间二分，小段内约load2个小块，复杂度log(load2)
+        l = r << lg2 | 0;          // 即l = segi * load2X + 1, 小段首的小块;r<<lg2=segi
+        r = r << lg2 | segSize[r]; // r表示小段内非空小块的右端点
+        while (r - l > 1) if (blkMax[mid = l + r >> 1] >= x) r = mid; else l = mid;
+        // 最终的r就是小块编号bi;
+
+        /* 3.在小块内部二分，小块内部约load1个小段，复杂度log(load1),
+            总复杂度log(n)-log(load1)-log(load2) + log(load2)  + log(load1) = log(n)*/
+        return pair{r, (Iterator)ranges::lower_bound(blocks[r], x)};
+    }
+    pair<int, Iterator> upper_bound(_Tp x) { // 与lower_bound类似
+        if (segSize.empty()) return {0, blocks[0].end()};
+        int l = -1, r = segSize.size() - 1, mid;
+        while (r - l > 1)
+            if (segMax[mid = l + r >> 1] > x) r = mid;
+            else l = mid;
+        l = r << lg2 | 0;
+        r = r << lg2 | segSize[r];
+        while (r - l > 1)
+            if (blkMax[mid = l + r >> 1] > x) r = mid;
+            else l = mid;
+        return pair{r, (Iterator)ranges::upper_bound(blocks[r], x)};
+    }
+    void _rangeBitModify(int b1, int b2) { // 一小段树状数组段内重构
+        fill(bitCnt.data() + b1, bitCnt.data() + b2 + 1, 0);
+        for (int i = b1; i <= b2; ++i) { // 复杂度O(b2-b1) = O(load2),注意不是O(load2·log(load2))
+            if (blocks[i].size()) {
+                bitCnt[i] += blocks[i].size(); // 利用blocks[b1~b2].size()重构bitCnt[b1~b2]
+                blkMax[i] = blocks[i].back();
+            }
+            if (i + (-i & i) <= b2 and bitCnt[i])
+                bitCnt[i + (-i & i)] += bitCnt[i];
+        }
+        //   ~(b2&load2X-1)表示b2是一个小段的根节点
+        //  ~(b2&load2X*2-1)表示b2不止是一个小段的根节点, 而且它还需要吸收前面某些个小段的贡献
+        //  比如b2 = 12*load2X, 那么b2还要加上10*load2X的贡献,因为12*load2X == 10*load2X+lowbit(10*load2X);
+        //  如果b2 = 11*load2X, 那么b2小段前面没有任何小段对b2有贡献
+        //  如果b2 = 12*load2X, lowb=4*load2X/2, 那么b2要加上(12-2)*load2X和(12-1)*load2X对应根节点的贡献
+        for (int lowb = (-b2 & b2) / 2; lowb >= load2X; lowb >>= 1)
+            bitCnt[b2] += bitCnt[b2 - lowb]; // 平均O(1),有一半的b2是没有前面小段对它产生贡献的，一半的一半有两个小段对b2段有贡献
+    }
+    void _expand() { // 整个SL重构
+        vector<vector<_Tp>> blocksOld = move(blocks);
+        int c = 0; // 非空小块数目
+        for (auto &blk : blocksOld)
+            c += blk.size() > 0;
+        int segn = (c + load2 - 1) / load2; //  segn新的小段数目
+        blocks.reserve(segn * load2X + 1);  //
+        bitCnt.reserve(segn * load2X + 1);
+        blkMax.reserve(segn * load2X + 1);
+        int ec = elementCnt;
+        clear(); elementCnt = ec; // SL所有数据全部清空, 保留elementCnt, expand不会改变elementCnt
+        segMax.assign(segn, minVal);
+        segSize.assign(segn, 0);
+        for (int i = 0; auto &block : blocksOld) {      // O(n/load1)
+            if (block.size()) {                         // 如果是非空小块
+                segMax[i >> lg2 - 1] = block.back();    // 更新第i/load2段的最大值
+                segSize[i >> lg2 - 1] += 1;             // 更新第i/load2段的小块数目
+                blkMax.emplace_back(block.back());      // 把小块的元素最大值存到blkMax数组
+                bitCnt.emplace_back(block.size());      // 把小块的元素数目写到树状数组
+                blocks.emplace_back(move(block));       // 移动小块到新的blocks数组。 O(1)
+                if ((++i & load2 - 1) == 0 and i < c) { // 新的一段前半段填满了，后半段补空段
+                    /*  每填load2个小块就在后面填load2个空块,形成一个前半段放满，后半段为空的树状数组小段
+                        小块分裂时可以占用空块, 只要重置对应小段的树状数组，不需要重置整个SL
+                        只有当空位全部填满时才重构整个SL，均摊复杂度(load1*load2)^-1 * (n/load1) */
+                    blocks.resize(blocks.size() + load2); // 往后填充load2个空块
+                    bitCnt.resize(blocks.size());         // 往后填充load2个0
+                    blkMax.resize(blocks.size());
+                }
+            }
+        }
+        // O(n/load1) 处理bitCnt树状数组前缀和
+        for (int i = 1; i < bitCnt.size(); ++i)
+            if (i + (-i & i) < bitCnt.size()) bitCnt[i + (-i & i)] += bitCnt[i];
+    }
+    void insert(_Tp x) {
+        if (segSize.empty()) {
+            ++elementCnt;
+            blocks.emplace_back(vector<_Tp>{x});
+            bitCnt.emplace_back(1);
+            blkMax.emplace_back(x);
+            segMax.emplace_back(x);
+            segSize.emplace_back(1);
+            return;
+        }
+        auto [bi, it] = lower_bound(x);
+        // if(it != blocks[bi].end() and *it == x) return  ; // 已经存在
+        ++elementCnt;
+        for (int i = bi; i < bitCnt.size(); i += -i & i) // 在整个树状数组上更新 log(n/load1)
+            bitCnt[i] += 1;
+        blocks[bi].insert(it, x);
+        int segi = (bi - 1) >> lg2; // 即(bi - 1) // load2X
+        chmax(blkMax[bi], x);
+        chmax(segMax[segi], x);                     // 更新 segMax[segi]
+        if (blocks[bi].size() >= load1X) {          // blocks[bi]分裂
+            int bj = (segi << lg2) | segSize[segi]; // bi所在的这一小段的最后一个非空小块;
+            int bn = segi + 1 << lg2;               // bi所在的这一小段的最后一个小块(与bj区别在bn包括了空块, 表示树状数组小段的根节点)
+            if (blocks.size() <= bn) {              // blocks[bn]还不存在，说明是最后一段，直接在blocks[bi+1]处insert
+                blocks.insert(blocks.begin() + bi + 1, vector<_Tp>(blocks[bi].begin() + load1, blocks[bi].end()));
+                bitCnt.resize(blocks.size()); // 在尾部加个元素，元素值先不管，因为下面这个小段的树状数组内容要重构
+                blkMax.resize(blocks.size());
+            } else {
+                // 这里不能insert了，因为这不是最后一小段，后面可能还有好多小段，insert会把blocks[bn]推到下一个小段的首位;
+                // 把blocks[bi+1~bj]移动到blocks[bi+2~bj+1]，(这个闭区间长度是bj-bi); O(load2)
+                vector<_Tp>().swap(blocks[bj+1]);//释放blocks[bj+1]的资源，实际生产环境比较重要
+                memmove(blocks.data() + bi + 2, blocks.data() + bi + 1, (bj - bi) * sizeof(vector<_Tp>));
+                /*    此时blocks[bi+2]和blocks[bi+1]是同一个对象，把blocks[bi+1]内存清零(清的是&blocks[bi+1]处的内存，也就是
+                   blocks.data()+bi+1处,不是blocks[bi+1].data()处的内存) , 防止因为blocks[bi+1]的操作释放blocks[bi+2]的资源*/
+                memset(blocks.data() + bi + 1, 0, sizeof(vector<_Tp>));
+                blocks[bi + 1] = vector<_Tp>(blocks[bi].begin() + load1, blocks[bi].end());
+            }
+            blocks[bi].resize(load1); // 把后半块数据给blocks[bi+1]后blocks[bi]缩到原来前半块
+            if (++segSize[segi] == load2X) {
+                _expand();                                                         // 这一小段树状数组填满了,把SL重构
+            } else {                                                               // 重构一小段树状数组
+                _rangeBitModify(segi << lg2 | 1, min<int>(bn, bitCnt.size() - 1)); // (segi<<lg2|1) == segi*load2X+1;表示这一小段树状数组的左端点
+            }
+        }
+    }
+    void erase(_Tp x) {
+        if (segMax.empty() or segMax.back() < x) return; // 检查整个SL是否非空，检查SL内是否存在元素 >= x;
+        auto [bi, it] = lower_bound(x);                  // segMax.back() >= x , 所以it不会指向end();
+        if (*it > x) return;                             // 如果第一个>=x的元素不是x,说明SL内不存在x,直接返回。
+        --elementCnt;
+        for (int i = bi; i < bitCnt.size(); i += -i & i) // 在整个树状数组上更新 log(n/load1)
+            bitCnt[i] -= 1;
+        blocks[bi].erase(it);
+        int segi = (bi - 1) >> lg2;
+        int bj = (segi << lg2) | segSize[segi]; // bi所在的这一小段的最后一个非空小块;
+        if (blocks[bi].empty()) {               // blocks[bi]空了,删除
+            int bn = segi + 1 << lg2;           // bi所在的这一小段的最后一个小块(与bj区别在bn包括了空块, 表示树状数组小段的根节点)
+            if (blocks.size() <= bn) {          // blocks[bn]还不存在，说明是最后一小段，直接erase(blocks[bi])
+                blocks.erase(blocks.begin() + bi);
+                blkMax.erase(blkMax.begin() + bi);
+                bitCnt.resize(blocks.size());                            // bitCnt.size() 与 blocks.size()保持一致， 其实就是bitCnt.pop_back();
+                if (--segSize[segi] == 0) {                              // 删除当前小块后，最后一小段也空了
+                    segMax.pop_back(), segSize.pop_back();               // 小段数量减一
+                } else {                                                 // 当前小段非空
+                    _rangeBitModify(segi << lg2 | 1, bitCnt.size() - 1); // 仅把当前小段的树状数组重构
+                    if (bi == bj) segMax[segi] = blocks[bj - 1].back();  // 万一删了最后一小块，会导致segMax[segi]变小，更新一下；
+                }
+            } else { // 不是最后一小段的情况
+                // 把blocks[bi+1~bj]移动到blocks[bi~bj-1]，(这个闭区间长度是bj-bi); O(load2)
+                if (--segSize[segi] == 0) { // 删除当前小块后，当前小段也空了
+                    _expand();              // 把整个SL重构
+                } else {                    // 当前小段非空，仅把当前小段的树状数组重构
+                    vector<_Tp>().swap(blocks[bi]);//释放blocks[i]的资源，实际生产环境比较重要
+                    memmove(blocks.data() + bi, blocks.data() + bi + 1, (bj - bi) * sizeof(vector<_Tp>));
+                    // 此时blocks[bj]和blocks[bj-1]是同一个对象，把blocks[bj]内存清零,防止因为blocks[bj]的操作释放blocks[bj-1]的资源*/
+                    memset(blocks.data() + bj, 0, sizeof(vector<_Tp>));
+                    _rangeBitModify(segi << lg2 | 1, bn);               // 仅把当前小段的树状数组重构
+                    if (bi == bj) segMax[segi] = blocks[bj - 1].back(); // 万一删了最后一小块，会导致segMax[segi]变小，更新一下；
+                }
+            }
+        } else { // blocks[bi]非空, 不需要删除blocks[bi]小块, 小段内结构不变
+            blkMax[bi] = blocks[bi].back();
+            if (bi == bj) segMax[segi] = blocks[bi].back(); // 万一删了最后一小块的最后一个元素，会导致segMax[segi]变小，更新一下；
+        }
+    }
+    int size() const { return elementCnt; }
+    _Tp operator[](int k) { // SL中第k个大的元素，base:0
+        assert(k >= 0 and k < elementCnt);
+        int bi = 0;
+        for (int i = 1 << __lg(bitCnt.size() - 1); i; i >>= 1)
+            if ((bi | i) < bitCnt.size() and k - bitCnt[bi | i] >= 0) k -= bitCnt[bi |= i];
+        // 如果k减去bitCnt[bi|i]的值后还是一个>=0的下标，那么bi|=i, k减去新的bitCnt[bi]
+        //  更新完之后，sum(blocks[1~bi].size())已经被k减去了，k仍>=0; 且此时k-blocks[bi+1].size()将小于0;
+        return blocks[bi + 1][k];
+    }
+    int rank(_Tp x) { //找到lower_bound(x)在整个数组中的下标
+        if (segSize.empty()) return 0;
+        auto [bi, it] = lower_bound(x);
+        int rk = it - blocks[bi].begin(); // 在bi块内的rank + sum(blocks[1~bi-1].size());
+        for (int i = bi - 1; i; i ^= -i & i)
+            rk += bitCnt[i];
+        return rk;
+    }
+    int count(_Tp x) {
+        if (segSize.empty()) return 0;
+        auto [bi, it] = upper_bound(x);
+        int rk = it - blocks[bi].begin();
+        for (int i = bi - 1; i; i ^= -i & i)
+            rk += bitCnt[i];
+        return rk - rank(x); // upper_bound - lower_bound
+    }
+    pair<int, Iterator> prev(pair<int, Iterator> iter) {
+        auto &[bi, it] = iter;
+        assert(bi > 1 or bi == 1 and it > blocks[bi].begin());                        // 检测bi>=1, 检测iter不指向SL的首元素
+        if (it > blocks[bi].begin()) return {bi, std::prev(it)};                      // prev位于同一小块
+        if ((bi & load2X - 1) != 1) return {bi - 1, std::prev(blocks[bi - 1].end())}; // prev位于同一小段的前一个小块
+
+        // prev位于前一小段的最后一个非空小块 , 此时 (bi & load2-1) = 1
+        int Segi = ((bi - 1) >> lg2);
+        bi = (Segi - 1 << lg2) | segSize[Segi - 1]; // 前一小段的最后一个非空小块
+        return {bi, std::prev(blocks[bi].end())};
+    }
+    _Tp lessEqual(_Tp x){ // 寻找最大的<=x的元素，即*prev(upper_bound)
+        auto [bi,it] = upper_bound(x);
+        if( not (bi > 1 or bi == 1 and it > blocks[bi].begin()) ) return _Tp(-1);
+        return *prev(pair<int, Iterator>{bi,it}).second;
+    }
+    _Tp greaterEqual(_Tp x){ //寻找最小的>=x的元素，即*lower_bound
+        auto [bi,it] = lower_bound(x);
+        if(it == blocks[bi].end()) return _Tp(-1);
+        return *it;
+    }
+}; sortedlistPlus<int> sl;
+\end{lstlisting}
 \subsection{珂朵莉树|ODT}
 std::map 实现，其键维护左端点，其值维护其对应的左端点到下一个左端点之前的值。
 
