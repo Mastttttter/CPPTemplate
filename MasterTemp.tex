@@ -289,6 +289,24 @@ Sylvester 定理
 
 对于互素的正整数 $a_1,a_2$，不能够写作 $a_1x_1+a_2x_2~(x_1,x_2\in\mathbf N)$ 的最大整数是 $C = a_1a_2 - a_1 - a_2$。而且，对于所有 $k\in\mathbf Z$，整数 $k$ 和 $C-k$ 中有且只有一个可以写作该形式。
 \subsection{组合数学}
+\subsubsection{Catalan数}
+\[
+f(n)=\mathrm{C}_{2n}^{n}-\mathrm{C}_{2n}^{n-1}
+\]
+\[
+f(n)=\frac{\mathrm{C}_{2n}^{n}}{n+1}
+\]
+\[
+f(n)=\frac{f(n-1)\cdot (4n-2)}{n+1}
+\]
+\[
+f(n)=\sum_{i=0}^{n-1}f(i)\cdot(n-i-1)
+\]
+其前几项为（从第0项开始）：1, 1, 2, 5, 14, 42, 132, 429, 1430, 4862, 16796, 58786, 208012, 742900, 2674440, 9694845, 35357670, 129644790, 477638700, 1767263190, 6564120420, 24466267020, 91482563640, 343059613650, 1289904147324, 4861946401452………
+
+一个常见的模型是括号串模型，长度为2n的合法括号串数量就为$f(n)$个。
+\subsubsection{Catalan的小结论}
+长度为n的排列且最长下降子序列长度：<2的排列数=第n个加泰罗尼亚（Catalan）数Cn。
 \subsubsection{lucas定理求小模数comb}
 在后面模数模板有详细的/更优化的版本
 \begin{lstlisting}
@@ -2116,29 +2134,49 @@ auto comp=[&](i32 a,i32 b,i32 c,i32 d){
 \subsection{字符串哈希}
 双值哈希：
 \begin{lstlisting}
-using ull = unsigned long long;
-ull base = 131;
-ull mod1 = 212370440130137957, mod2 = 1e9 + 7;
-
-ull get_hash1(std::string s) {
-  int len = s.size();
-  ull ans = 0;
-  for (int i = 0; i < len; i++) ans = (ans * base + (ull)s[i]) % mod1;
-  return ans;
-}
-
-ull get_hash2(std::string s) {
-  int len = s.size();
-  ull ans = 0;
-  for (int i = 0; i < len; i++) ans = (ans * base + (ull)s[i]) % mod2;
-  return ans;
-}
-
-bool cmp(const std::string s, const std::string t) {
-  bool f1 = get_hash1(s) != get_hash1(t);
-  bool f2 = get_hash2(s) != get_hash2(t);
-  return f1 || f2;
-}
+struct StringHasher {
+  const static i64 base = 131;
+  const static i64 mod1 = 212370440130137957, mod2 = 1000000007;
+  std::vector<i64> h1, p1, h2, p2;
+  StringHasher(const std::string_view s) {
+    int n = s.size();
+    h1.resize(n + 1, 0);
+    h2.resize(n + 1, 0);
+    p1.resize(n + 1, 1);
+    p2.resize(n + 1, 1);
+    for (int i = 0; i < n; ++i) {
+      h1[i + 1] = (i64)(((i128)h1[i] * base + s[i]) % mod1);
+      h2[i + 1] = (h2[i] * base + (i64)s[i]) % mod2;
+      p1[i + 1] = (i64)(((i128)p1[i] * base) % mod1);
+      p2[i + 1] = (p2[i] * base) % mod2;
+    }
+  }
+  std::pair<i64, i64> getHash(int l, int r) {
+    return {(i64)(((i128)h1[r] - (i128)h1[l] * p1[r - l]) % mod1 + mod1) % mod1,
+            (i64)(((i128)h2[r] - (i128)h2[l] * p2[r - l]) % mod2 + mod2) %
+                mod2};
+  }
+  bool operator==(const StringHasher &o) const {
+    return h1.back() == o.h1.back() && h2.back() == o.h2.back();
+  }
+  bool comp(int l1, int r1, int l2, int r2) {
+    return getHash(l1, r1) == getHash(l2, r2);
+  }
+  int lcp(int l1, int r1, int l2, int r2) {
+    int f = 0, l = std::min(r1 - l1, r2 - l2);
+    int c = l - f;
+    while (c) {
+      int h = c >> 1;
+      int it = f + h;
+      if (comp(l1, l1 + it + 1, l2, l2 + it + 1)) {
+        f = ++it;
+        c -= h + 1;
+      } else
+        c = h;
+    }
+    return f;
+  }
+};
 \end{lstlisting}
 \subsection{字典树}
 \begin{lstlisting}
