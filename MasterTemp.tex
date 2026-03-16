@@ -2379,6 +2379,46 @@ std::vector<T> z_function(std::string_view s){
 }
 \end{lstlisting}
 \section{DP}
+\subsection{多重背包（单调队列优化）}
+\begin{lstlisting}
+void solve() {
+    int n, m;
+    cin >> n >> m;
+    std::vector<i64> f(m + 1, 0);
+    for (int i = 0; i < n; ++i) {
+        int w, v, s;
+        cin >> w >> v >> s;
+        if (v == 0) {
+            continue;
+        }
+        if (w == 0) {
+            i64 tv = 1ll * v * s;
+            for (auto& e : f)
+                e += tv;
+            continue;
+        }
+        i64 max = w * s;
+        for (int r = 0; r < w; ++r) {
+            std::deque<std::pair<int, i64>> deq;
+            deq.emplace_back(r, f[r]);
+            for (int i = w + r; i <= m; i += w) {
+                while (!deq.empty() && i - deq.front().first > max) {
+                    deq.pop_front();
+                }
+                while (!deq.empty() &&
+                        deq.back().second + (i - deq.back().first) / w * 1ll * v <=
+                        f[i]) {
+                    deq.pop_back();
+                }
+                deq.emplace_back(i, f[i]);
+                f[i] = std::max(f[i], deq.front().second +
+                                (i - deq.front().first) / w * 1ll * v);
+            }
+        }
+    }
+    std::cout << f[m] << '\n';
+}
+\end{lstlisting}
 \subsection{分组背包（bitset优化）}
 \begin{lstlisting}
         const i32 maxn=2e5+10;
