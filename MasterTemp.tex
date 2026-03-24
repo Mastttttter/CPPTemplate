@@ -999,6 +999,61 @@ std::cout<<ans<<'\n';
 \end{lstlisting}
 \section{数据结构}
 约定：除了树状数组,笛卡尔树，都以0作为起始下标
+\subsection{TwoHeap|对顶堆}
+\begin{lstlisting}
+template <typename T> struct TwoHeap {
+  std::multiset<T> a1; // 1 2 3 4
+  std::multiset<T> a2; // 4 6 8 9
+  int K;               // kth largest  element
+  i64 sum1 = 0, sum2 = 0;
+  TwoHeap(int k) { K = k; }
+  void add(T x) {
+    if (!a1.empty() && x <= *a1.rbegin()) {
+      a1.insert(x);
+      sum1 += x;
+    } else {
+      a2.insert(x);
+      sum2 += x;
+    }
+    tidy();
+  }
+  void remove(T x) {
+    if (!a1.empty() && x <= *a1.rbegin()) {
+      a1.extract(x);
+      sum1 -= x;
+    } else {
+      a2.extract(x);
+      sum2 -= x;
+    }
+    tidy();
+  }
+  T get() {
+    assert(!a2.empty());
+    return *a2.begin();
+  }
+  void setK(int k) {
+    K = k;
+    tidy();
+  }
+  int size() { return a1.size() + a2.size(); }
+  void tidy() {
+    while (!a1.empty() && a2.size() < K) {
+      auto t = std::prev(a1.end());
+      sum2 += *t;
+      sum1 -= *t;
+      a2.insert(*t);
+      a1.erase(t);
+    }
+    while (a2.size() > K) {
+      auto t = a2.begin();
+      sum1 += *t;
+      sum2 -= *t;
+      a1.insert(*t);
+      a2.erase(t);
+    }
+  }
+};
+\end{lstlisting}
 \subsection{CartesianTree}
 1based idx
 
