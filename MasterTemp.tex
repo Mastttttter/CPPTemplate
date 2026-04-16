@@ -1901,6 +1901,70 @@ struct DynSegTree {
 \end{lstlisting}
 \subsubsection{主席树|可持久化线段树|函数式线段树}
 \begin{lstlisting}
+template <typename T> struct ExtSegTree {
+  using sz = i32;
+  std::vector<T> v = {0};
+  std::vector<T> lz = {0};
+  std::vector<sz> l = {0};
+  std::vector<sz> r = {0};
+  sz ed;
+  std::vector<sz> rt;
+  sz clone(sz p = 0) {
+    sz new_node = v.size();
+    v.push_back(v[p]);
+    lz.push_back(lz[p]);
+    l.push_back(l[p]);
+    r.push_back(r[p]);
+    return new_node;
+  }
+  void _upd(sz ql, sz qr, T val, sz &p, sz cl, sz cr) {
+    p = clone(p);
+    v[p] += (std::min(qr, cr) - std::max(ql, cl) + 1) * val;
+    if (ql <= cl && cr <= qr) {
+      lz[p] += val;
+      return;
+    }
+    sz m = (cl + cr) >> 1;
+    if (ql <= m)
+      _upd(ql, qr, val, l[p], cl, m);
+    if (m < qr)
+      _upd(ql, qr, val, r[p], m + 1, cr);
+  }
+  void upd(sz ql, sz qr, T val, sz k) { _upd(ql, qr, val, rt[k], 0, ed); }
+  T _get(sz ql, sz qr, sz p, sz cl, sz cr, T lazy) {
+    if (!p)
+      return lazy * (std::min(qr, cr) - std::max(ql, cl) + 1);
+    if (ql <= cl && cr <= qr)
+      return v[p] + lazy * (cr - cl + 1);
+    sz m = (cr + cl) >> 1;
+    lazy += lz[p];
+    T res = 0;
+    if (ql <= m)
+      res += _get(ql, qr, l[p], cl, m, lazy);
+    if (m < qr)
+      res += _get(ql, qr, r[p], m + 1, cr, lazy);
+    return res;
+  }
+  T get(sz ql, sz qr, sz k) { return _get(ql, qr, rt[k], 0, ed, 0); }
+  sz build(const std::vector<T> &init, sz cl, sz cr) {
+    sz p = clone();
+    if (cl == cr) {
+      v[p] = init[cl];
+      return p;
+    }
+    sz m = (cr + cl) >> 1;
+    l[p] = build(init, cl, m);
+    r[p] = build(init, m + 1, cr);
+    v[p] = v[l[p]] + v[r[p]];
+    return p;
+  }
+  ExtSegTree(const std::vector<T> &init) : ed((sz)init.size() - 1) {
+    rt.emplace_back(build(init, 0, ed));
+  }
+};
+
+\end{lstlisting}
+\begin{lstlisting}
 template<typename T>
 struct ExtSegTree {
     using sz=size_t;
