@@ -1902,47 +1902,52 @@ struct DynSegTree {
 \subsubsection{主席树|可持久化线段树|函数式线段树}
 \begin{lstlisting}
 template <typename T> struct ExtSegTree {
-  using sz = i32;
+  using sz = int;
   std::vector<T> v = {0};
   std::vector<T> lz = {0};
   std::vector<sz> l = {0};
   std::vector<sz> r = {0};
   sz ed;
-  std::vector<sz> rt;
+  std::vector<sz> rt = {0};
   sz clone(sz p = 0) {
-    sz new_node = v.size();
+    sz ret = v.size();
     v.push_back(v[p]);
     lz.push_back(lz[p]);
     l.push_back(l[p]);
     r.push_back(r[p]);
-    return new_node;
+    return ret;
   }
-  void _upd(sz ql, sz qr, T val, sz &p, sz cl, sz cr) {
+  sz _upd(sz ql, sz qr, T val, sz p, sz cl, sz cr) {
     p = clone(p);
     v[p] += (std::min(qr, cr) - std::max(ql, cl) + 1) * val;
     if (ql <= cl && cr <= qr) {
       lz[p] += val;
-      return;
+      return p;
     }
     sz m = (cl + cr) >> 1;
     if (ql <= m)
-      _upd(ql, qr, val, l[p], cl, m);
+      l[p]=_upd(ql, qr, val, l[p], cl, m);
     if (m < qr)
-      _upd(ql, qr, val, r[p], m + 1, cr);
+      r[p]=_upd(ql, qr, val, r[p], m + 1, cr);
+    return p;
   }
-  void upd(sz ql, sz qr, T val, sz k) { _upd(ql, qr, val, rt[k], 0, ed); }
-  T _get(sz ql, sz qr, sz p, sz cl, sz cr, T lazy) {
+  sz upd(sz ql, sz qr, T val, sz k=0) {
+    sz ret=rt.size();
+    rt.emplace_back(_upd(ql, qr, val, rt[k], 0, ed));
+    return ret;
+  }
+  T _get(sz ql, sz qr, sz p, sz cl, sz cr, T la) {
     if (!p)
-      return lazy * (std::min(qr, cr) - std::max(ql, cl) + 1);
+      return la * (std::min(qr, cr) - std::max(ql, cl) + 1);
     if (ql <= cl && cr <= qr)
-      return v[p] + lazy * (cr - cl + 1);
+      return v[p] + la * (cr - cl + 1);
     sz m = (cr + cl) >> 1;
-    lazy += lz[p];
+    la += lz[p];
     T res = 0;
     if (ql <= m)
-      res += _get(ql, qr, l[p], cl, m, lazy);
+      res += _get(ql, qr, l[p], cl, m, la);
     if (m < qr)
-      res += _get(ql, qr, r[p], m + 1, cr, lazy);
+      res += _get(ql, qr, r[p], m + 1, cr, la);
     return res;
   }
   T get(sz ql, sz qr, sz k) { return _get(ql, qr, rt[k], 0, ed, 0); }
@@ -1958,6 +1963,7 @@ template <typename T> struct ExtSegTree {
     v[p] = v[l[p]] + v[r[p]];
     return p;
   }
+  ExtSegTree(sz n):ed(n-1) {}
   ExtSegTree(const std::vector<T> &init) : ed((sz)init.size() - 1) {
     rt.emplace_back(build(init, 0, ed));
   }
