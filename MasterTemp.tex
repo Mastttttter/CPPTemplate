@@ -1,8 +1,9 @@
 %!TEX program  = xelatex
-\documentclass[UTF8]{ctexart}
+\documentclass[UTF8,twoside]{ctexart}
 \usepackage{amsmath}
 \usepackage{listings}
 \usepackage{xcolor}
+\usepackage[a4paper, margin=2.0cm, bindingoffset=0.5cm]{geometry}
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
 \definecolor{codepurple}{rgb}{0.58,0,0.82}
@@ -2267,6 +2268,157 @@ struct ExtSegTree {
     }
 };
 \end{lstlisting}
+\subsubsection{线段树套线段树}
+\begin{lstlisting}
+template <typename T>
+struct MaxOp {
+  T operator()(T const &a, T const &b) const {
+    return std::max(a, b);
+  }
+};
+
+template <typename T, typename Merge = MaxOp<T>>
+class SegTree2d {
+  private:
+  int n, m;
+  std::vector<std::vector<T>> tree;
+  T identity;
+  Merge merge;
+
+  void build_y(std::vector<std::vector<T>> const &a, int vx, int lx, int rx,
+               int vy, int ly, int ry) {
+    if (ly == ry) {
+      if (lx == rx) {
+        tree[vx][vy] = a[lx][ly];
+      } else {
+        tree[vx][vy] = merge(tree[vx << 1][vy], tree[vx << 1 | 1][vy]);
+      }
+      return;
+    }
+    int my = (ly + ry) >> 1;
+    build_y(a, vx, lx, rx, vy << 1, ly, my);
+    build_y(a, vx, lx, rx, vy << 1 | 1, my + 1, ry);
+    tree[vx][vy] = merge(tree[vx][vy << 1], tree[vx][vy << 1 | 1]);
+  }
+
+  void build_x(std::vector<std::vector<T>> const &a, int vx, int lx, int rx) {
+    if (lx != rx) {
+      int mx = (lx + rx) >> 1;
+      build_x(a, vx << 1, lx, mx);
+      build_x(a, vx << 1 | 1, mx + 1, rx);
+    }
+    build_y(a, vx, lx, rx, 1, 0, m - 1);
+  }
+
+  T query_y(int vx, int vy, int ly, int ry, int qly, int qry) const {
+    if (qry < ly || ry < qly) {
+      return identity;
+    }
+    if (qly <= ly && ry <= qry) {
+      return tree[vx][vy];
+    }
+    int my = (ly + ry) >> 1;
+    T left = query_y(vx, vy << 1, ly, my, qly, qry);
+    T right = query_y(vx, vy << 1 | 1, my + 1, ry, qly, qry);
+    return merge(left, right);
+  }
+
+  T query_x(int vx, int lx, int rx, int qlx, int qrx, int qly, int qry) const {
+    if (qrx < lx || rx < qlx) {
+      return identity;
+    }
+    if (qlx <= lx && rx <= qrx) {
+      return query_y(vx, 1, 0, m - 1, qly, qry);
+    }
+    int mx = (lx + rx) >> 1;
+    T left = query_x(vx << 1, lx, mx, qlx, qrx, qly, qry);
+    T right = query_x(vx << 1 | 1, mx + 1, rx, qlx, qrx, qly, qry);
+    return merge(left, right);
+  }
+
+  void update_y(int vx, int lx, int rx, int vy, int ly, int ry, int x, int y,
+                T const &value) {
+    if (ly == ry) {
+      if (lx == rx) {
+        tree[vx][vy] = value;
+      } else {
+        tree[vx][vy] = merge(tree[vx << 1][vy], tree[vx << 1 | 1][vy]);
+      }
+      return;
+    }
+    int my = (ly + ry) >> 1;
+    if (y <= my) {
+      update_y(vx, lx, rx, vy << 1, ly, my, x, y, value);
+    } else {
+      update_y(vx, lx, rx, vy << 1 | 1, my + 1, ry, x, y, value);
+    }
+    tree[vx][vy] = merge(tree[vx][vy << 1], tree[vx][vy << 1 | 1]);
+  }
+
+  void update_x(int vx, int lx, int rx, int x, int y, T const &value) {
+    if (lx != rx) {
+      int mx = (lx + rx) >> 1;
+      if (x <= mx) {
+        update_x(vx << 1, lx, mx, x, y, value);
+      } else {
+        update_x(vx << 1 | 1, mx + 1, rx, x, y, value);
+      }
+    }
+    update_y(vx, lx, rx, 1, 0, m - 1, x, y, value);
+  }
+
+  public:
+  SegTree2d() = default;
+
+  SegTree2d(std::vector<std::vector<T>> const &a, T identity_,
+            Merge merge_ = Merge())
+      : identity(identity_),
+        merge(merge_) {
+    n = a.size();
+    m = a[0].size();
+    tree.assign(4 * n + 5, std::vector<T>(4 * m + 5, identity));
+    build_x(a, 1, 0, n - 1);
+  }
+
+  T query(int x1, int y1, int x2, int y2) const {
+    assert(0 <= x1 && x1 <= x2 && x2 < n);
+    assert(0 <= y1 && y1 <= y2 && y2 < m);
+    return query_x(1, 0, n - 1, x1, x2, y1, y2);
+  }
+
+  void update(int x, int y, T const &value) {
+    assert(0 <= x && x < n);
+    assert(0 <= y && y < m);
+    update_x(1, 0, n - 1, x, y, value);
+  }
+};
+
+class Solution {
+  public:
+  int countLocalMaximums(std::vector<std::vector<int>> &matrix) {
+    SegTree2d st(matrix, 0);
+    int n = matrix.size(), m = matrix[0].size();
+    int ans = 0;
+    for (int i = 0; i < n; ++i) {
+      for (int j = 0; j < m; ++j) {
+        if (matrix[i][j]) {
+          auto x = matrix[i][j];
+          if (x == std::max(st.query(std::max(0, i - x), std::max(0, j - x + 1),
+                                     std::min(n - 1, i + x),
+                                     std::min(m - 1, j + x - 1)),
+                            st.query(std::max(0, i - x + 1), std::max(0, j - x),
+                                     std::min(n - 1, i + x - 1),
+                                     std::min(m - 1, j + x)))) {
+            ans++;
+          }
+        }
+      }
+    }
+    return ans;
+  }
+};
+
+\end{lstlisting}
 \subsection{树状数组|bit|Fenwick}
 \begin{lstlisting}
 template<typename T>
@@ -2439,6 +2591,222 @@ struct TupleHash {
 };
 \end{lstlisting}
 \section{字符串}
+\subsection{后缀自动机SAM}
+\begin{lstlisting}
+struct SAM {
+  static constexpr int ALPHABET_SIZE = 26;
+
+  struct Node {
+    int len;
+    int link;
+    std::array<int, ALPHABET_SIZE> next;
+
+    Node() : len{}, link{}, next{} {}
+  };
+
+  std::vector<Node> t;
+
+  SAM() {
+    init();
+  }
+
+  void init() {
+    t.assign(2, Node());
+    t[0].next.fill(1);
+    t[0].len = -1;
+  }
+
+  int newNode() {
+    t.emplace_back();
+    return t.size() - 1;
+  }
+
+  int extend(int p, int c) {
+    if (t[p].next[c]) {
+      int q = t[p].next[c];
+      if (t[q].len == t[p].len + 1) {
+        return q;
+      }
+      int r = newNode();
+      t[r].len = t[p].len + 1;
+      t[r].link = t[q].link;
+      t[r].next = t[q].next;
+      t[q].link = r;
+      while (t[p].next[c] == q) {
+        t[p].next[c] = r;
+        p = t[p].link;
+      }
+      return r;
+    }
+    int cur = newNode();
+    t[cur].len = t[p].len + 1;
+    while (!t[p].next[c]) {
+      t[p].next[c] = cur;
+      p = t[p].link;
+    }
+    t[cur].link = extend(p, c);
+    return cur;
+  }
+
+  int extend(int p, char c, char offset = 'a') {
+    return extend(p, c - offset);
+  }
+
+  int next(int p, int x) {
+    return t[p].next[x];
+  }
+
+  int next(int p, char c, char offset = 'a') {
+    return next(p, c - offset);
+  }
+
+  int link(int p) {
+    return t[p].link;
+  }
+
+  int len(int p) {
+    return t[p].len;
+  }
+
+  int size() {
+    return t.size();
+  }
+};
+\end{lstlisting}
+\subsubsection{occurance}
+给你一个整数数组 nums 。
+
+找出 nums 中与其他任何 子数组 均 不 相同 的 子数组 的 最小 长度。
+
+返回一个整数，表示此类 子数组 的 最小可能长度 。
+
+子数组 是数组中的一个连续的非空元素序列。
+
+如果两个 子数组 具有相同的长度，并且对应位置的元素也相同，则认为这两个 子数组 是相同的。
+
+\begin{lstlisting}
+struct SAM {
+  static constexpr int ALPHABET_SIZE = 26;
+
+  struct Node {
+    int len;
+    int link;
+    int occ;
+    std::unordered_map<int, int> next;
+
+    Node() : occ{}, len{}, link{}, next{} {}
+  };
+
+  std::vector<Node> t;
+
+  SAM() {
+    init();
+  }
+
+  void init() {
+    t.assign(2, Node());
+    // t[0].next.fill(1);
+    t[0].len = -1;
+  }
+
+  int newNode() {
+    t.emplace_back();
+    return t.size() - 1;
+  }
+
+  int extend_(int p, int c) {
+    if (t[p].next[c]) {
+      int q = t[p].next[c];
+      if (t[q].len == t[p].len + 1) {
+        return q;
+      }
+      int r = newNode();
+      t[r].len = t[p].len + 1;
+      t[r].link = t[q].link;
+      t[r].next = t[q].next;
+      t[q].link = r;
+      while (t[p].next[c] == q) {
+        t[p].next[c] = r;
+        p = t[p].link;
+      }
+      return r;
+    }
+    int cur = newNode();
+    t[cur].len = t[p].len + 1;
+    t[cur].occ = 1;
+    while (!t[p].next[c]) {
+      t[p].next[c] = cur;
+      p = t[p].link;
+    }
+    t[cur].link = extend_(p, c);
+    return cur;
+  }
+
+  void calocc() {
+    int n = t.size();
+    std::vector<std::vector<int>> adj(n);
+    for (int v = 2; v < n; ++v) {
+      adj[t[v].link].emplace_back(v);
+    }
+    auto dfs = [&](this auto &&dfs, int u) -> void {
+      for (auto &v: adj[u]) {
+        dfs(v);
+        t[u].occ += t[v].occ;
+      }
+    };
+    dfs(1);
+  }
+
+  int occ(int p) const {
+    return t[p].occ;
+  }
+
+  int extend(int p, int c, char offset = 0) {
+    t[0].next[c] = 1;
+    return extend_(p, c - offset);
+  }
+
+  int next(int p, int x) {
+    return t[p].next[x];
+  }
+
+  int next(int p, char c, char offset = 'a') {
+    return next(p, c - offset);
+  }
+
+  int link(int p) {
+    return t[p].link;
+  }
+
+  int len(int p) {
+    return t[p].len;
+  }
+
+  int size() {
+    return t.size();
+  }
+};
+
+class Solution {
+  public:
+  int smallestUniqueSubarray(std::vector<int> &nums) {
+    SAM sam;
+    int p = 1;
+    for (auto &x: nums) {
+      p = sam.extend(p, x);
+    }
+    sam.calocc();
+    int ans = int(nums.size()) + 1;
+    for (int v = 2; v < sam.size(); ++v) {
+      if (sam.occ(v) == 1) {
+        ans = std::min(ans, sam.len(sam.link(v)) + 1);
+      }
+    }
+    return ans;
+  }
+};
+
+\end{lstlisting}
 \subsection{后缀数组SA}
 $sa[i]$表示将所有后缀排序后第$𝑖$小的后缀的编号也是所说的后缀数组
 
