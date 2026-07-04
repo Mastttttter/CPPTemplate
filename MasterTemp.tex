@@ -3505,6 +3505,87 @@ for(i32 i=0;i<wid;++i){
         }
     }
 }
+\subsection{手写高维全缀和}
+\begin{lstlisting}
+std::array<i64, 1'000'000> pre{};
+void solve() {
+  int n;
+  cin >> n;
+  auto getid = [](std::string const &s) {
+    int id = 0;
+    for (auto &e: s) {
+      id *= 10;
+      id += e - '0';
+    }
+    return id;
+  };
+  for (int i = 0; i < n; ++i) {
+    std::string s;
+    i64 v;
+    cin >> s >> v;
+    pre[getid(s)] = v;
+  }
+  std::vector<int> step{100000, 10000, 1000, 100, 10, 1};
+  for (int di = 0; di < 6; ++di) {
+    int st = step[di];
+    for (int idx = 0; idx < 1'000'000; ++idx) {
+      int di = (idx / st) % 10;
+      if (di > 0) {
+        pre[idx] += pre[idx - st];
+      }
+    }
+  }
+  auto getv = [&](std::array<int, 6> const &d) {
+    for (auto &e: d) {
+      if (e < 0) {
+        return 0ll;
+      }
+    }
+    int idx = 0;
+    for (int i = 0; i < 6; ++i) {
+      idx = (idx * 10) + d[i];
+    }
+    return pre[idx];
+  };
+  int q;
+  cin >> q;
+  while (q--) {
+    std::string x, y;
+    cin >> x >> y;
+    std::array<int, 6> l{}, r{};
+    bool bemp = false;
+    for (int i = 0; i < 6; ++i) {
+      l[i] = x[i] - '0';
+      r[i] = y[i] - '0';
+      if (l[i] > r[i]) {
+        bemp = true;
+        break;
+      }
+    }
+    if (bemp) {
+      std::cout << 0 << '\n';
+      continue;
+    }
+    i64 ans = 0;
+    for (int ms = 0; ms < (1 << 6); ms++) {
+      std::array<int, 6> t{};
+      for (int i = 0; i < 6; ++i) {
+        if (ms >> i & 1) {
+          t[i] = l[i] - 1;
+        } else {
+          t[i] = r[i];
+        }
+      }
+      i64 val = getv(t);
+      if (__builtin_popcount(ms) % 2 == 0) {
+        ans += val;
+      } else {
+        ans -= val;
+      }
+    }
+    std::cout << ans << '\n';
+  }
+}
 \end{lstlisting}
 \section{模数模板，高进度+-*/}
 一劳永逸地解决模数/组合数学计算问题，因比较多，方便前面内容检索，就放最后了
